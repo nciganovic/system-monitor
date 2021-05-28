@@ -8,6 +8,7 @@ namespace Domain
 {
     public class Hardware
     {
+        public string Id { get; set; }
         public string Model { get; set; }
         public string AdditionalInfo { get; set; }
     }
