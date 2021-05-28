@@ -15,9 +15,11 @@ namespace WorkerLibrary
         {
             string path = "./Data/Test.csv";
 
-            using (var w = new StreamWriter(path, File.Exists(path)))
+            using (var w = new StreamWriter(path, File.Exists(path))) // writer will either create new file or append on existing one if is found on given location
             {
-                if (!File.Exists(path)) { 
+                //If doesn't exist then add header values for csv
+                if (!File.Exists(path)) 
+                { 
                     w.WriteLine("Value,CreateDate,Model,AdditionalInfo");
                     w.Flush();
                 }

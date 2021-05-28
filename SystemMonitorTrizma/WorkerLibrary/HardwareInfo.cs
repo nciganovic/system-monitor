@@ -13,16 +13,16 @@ namespace WorkerLibrary
 
         public HardwareInfo()
         {
-            ramCounter = new PerformanceCounter("Memory", "Available MBytes");
-            diskCounter = new PerformanceCounter("PhysicalDisk", "% Disk Time", "_Total");
+            ramCounter = new PerformanceCounter("Memory", "Available MBytes"); //get total available ram in megabytes
+            diskCounter = new PerformanceCounter("PhysicalDisk", "% Disk Time", "_Total"); //get total disk utilization in % 
         }
 
-        private int getAvailableRAM()
+        private int GetAvailableRam()
         {
             return (int)ramCounter.NextValue();
         }
 
-        private int getAvailableDISK()
+        private int GetAvailableDisk()
         {
             return (int)diskCounter.NextValue();
         }
@@ -61,7 +61,7 @@ namespace WorkerLibrary
 
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_PhysicalMemory");
 
-            int ramAvailableValue = getAvailableRAM();
+            int ramAvailableValue = GetAvailableRam();
             int ramTotalValue = GetTotalRam();
 
             foreach (ManagementObject obj in searcher.Get())
@@ -92,7 +92,7 @@ namespace WorkerLibrary
 
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select Model, SerialNumber, DeviceID from Win32_DiskDrive");
 
-            int availableDisk = getAvailableDISK();
+            int availableDisk = GetAvailableDisk(); //I couldn't get utilization value for each disk so i added total value on every record
 
             foreach (ManagementObject obj in searcher.Get())
             {

@@ -82,6 +82,7 @@ namespace WorkerLibrary
 
         private string LoadConnectionString(string id = "Default")
         {
+            //Loading connection string from App.config file in Monitor project.
             return ConfigurationManager.ConnectionStrings[id].ConnectionString;
         }
     }
