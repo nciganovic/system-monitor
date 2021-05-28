@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Domain;
 using System.Management;
 using System.Diagnostics;
+using Database;
 
 namespace Monitor
 {
@@ -19,6 +20,8 @@ namespace Monitor
         private PerformanceCounter cpuCounter;
         private PerformanceCounter ramCounter;
         private PerformanceCounter diskCounter;
+
+        private DataAccess dataAccess = new DataAccess();
 
         public Worker(ILogger<Worker> logger)
         {
@@ -56,11 +59,19 @@ namespace Monitor
 
                 foreach (var r in _records)
                 {
+                    Console.WriteLine("HardwareId => " + r.Hardware.Id);
                     Console.WriteLine("Model => " + r.Hardware.Model);
                     Console.WriteLine("Additional info => " + r.Hardware.AdditionalInfo);
                     Console.WriteLine("Value => " + r.Value);
                     Console.WriteLine("CreateDate => " + r.CreatedAt);
                     Console.WriteLine("================================================");
+
+                    if (!dataAccess.HardwareIdAlreadyExists(r.Hardware.Id))
+                    {
+                        dataAccess.InsertHardware(r.Hardware);
+                    }
+
+                    dataAccess.InsertRecord(r);
                 }
 
                 _records.Clear();
@@ -77,6 +88,7 @@ namespace Monitor
             {
                 Hardware hardware = new Hardware
                 {
+                    Id = obj["SerialNumber"].ToString(),
                     Model = obj["Name"].ToString(),
                     AdditionalInfo = obj["DeviceId"].ToString() + " " + obj["SerialNumber"].ToString()
                 };
@@ -102,6 +114,7 @@ namespace Monitor
             {
                 Hardware hardware = new Hardware
                 {
+                    Id = obj["SerialNumber"].ToString(),
                     Model = obj["Manufacturer"].ToString() + " " + obj["PartNumber"].ToString(),
                     AdditionalInfo = obj["Name"].ToString() + " " + obj["SerialNumber"].ToString()
                 };
@@ -126,6 +139,7 @@ namespace Monitor
             {
                 Hardware hardware = new Hardware
                 {
+                    Id = obj["SerialNumber"].ToString(),
                     Model = obj["Model"].ToString(),
                     AdditionalInfo = obj["DeviceId"].ToString() + " " + obj["SerialNumber"].ToString()
                 };
