@@ -9,6 +9,7 @@ using Domain;
 using System.Management;
 using System.Diagnostics;
 using Database;
+using System.IO;
 
 namespace Monitor
 {
@@ -17,7 +18,6 @@ namespace Monitor
         private readonly ILogger<Worker> _logger;
         private List<Record> _records;
 
-        private PerformanceCounter cpuCounter;
         private PerformanceCounter ramCounter;
         private PerformanceCounter diskCounter;
 
@@ -27,11 +27,6 @@ namespace Monitor
         {
             _logger = logger;
             _records = new List<Record>();
-        }
-
-        public int getCurrentCpuUsage()
-        {
-            return (int)cpuCounter.NextValue();
         }
 
         public int getAvailableRAM()
@@ -46,13 +41,13 @@ namespace Monitor
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total");
             ramCounter = new PerformanceCounter("Memory", "Available MBytes");
             diskCounter = new PerformanceCounter("PhysicalDisk", "% Disk Time", "_Total");
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                
                 GetProcessorInfo();
                 GetRamInfo();
                 GetDiskInfo();
@@ -74,6 +69,8 @@ namespace Monitor
                     dataAccess.InsertRecord(r);
                 }
 
+                CsvWriter.WriteToCsv(_records);
+
                 _records.Clear();
 
                 await Task.Delay(10000, stoppingToken);
@@ -88,15 +85,15 @@ namespace Monitor
             {
                 Hardware hardware = new Hardware
                 {
-                    Id = obj["SerialNumber"].ToString(),
-                    Model = obj["Name"].ToString(),
-                    AdditionalInfo = obj["DeviceId"].ToString() + " " + obj["SerialNumber"].ToString()
+                    Id = obj["SerialNumber"].ToString().Trim(),
+                    Model = obj["Name"].ToString().Trim(),
+                    AdditionalInfo = obj["DeviceId"].ToString().Trim() + " " + obj["SerialNumber"].ToString().Trim()
                 };
 
                 Record r = new Record
                 {
                     Hardware = hardware,
-                    Value = Convert.ToInt32(obj["LoadPercentage"].ToString()),
+                    Value = Convert.ToInt32(obj["LoadPercentage"].ToString().Trim()),
                     CreatedAt = DateTime.Now
                 };
 
@@ -108,21 +105,21 @@ namespace Monitor
         {
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select * from Win32_PhysicalMemory");
 
-            double ramUtil = CalculateRamUtil();
+            int ramValue = getAvailableRAM();
 
             foreach (ManagementObject obj in searcher.Get())
             {
                 Hardware hardware = new Hardware
                 {
-                    Id = obj["SerialNumber"].ToString(),
-                    Model = obj["Manufacturer"].ToString() + " " + obj["PartNumber"].ToString(),
-                    AdditionalInfo = obj["Name"].ToString() + " " + obj["SerialNumber"].ToString()
+                    Id = obj["SerialNumber"].ToString().Trim(),
+                    Model = obj["Manufacturer"].ToString().Trim() + " " + obj["PartNumber"].ToString().Trim(),
+                    AdditionalInfo = obj["Name"].ToString().Trim() + " " + obj["SerialNumber"].ToString().Trim()
                 };
 
                 Record r = new Record
                 {
                     Hardware = hardware,
-                    Value = Convert.ToInt32(ramUtil),
+                    Value = ramValue,
                     CreatedAt = DateTime.Now
                 };
 
@@ -135,45 +132,27 @@ namespace Monitor
         {
             ManagementObjectSearcher searcher = new ManagementObjectSearcher("select Model, SerialNumber, DeviceID from Win32_DiskDrive");
 
+            int availableDisk = getAvailableDISK();
+
             foreach (ManagementObject obj in searcher.Get())
             {
                 Hardware hardware = new Hardware
                 {
-                    Id = obj["SerialNumber"].ToString(),
-                    Model = obj["Model"].ToString(),
-                    AdditionalInfo = obj["DeviceId"].ToString() + " " + obj["SerialNumber"].ToString()
+                    Id = obj["SerialNumber"].ToString().Trim(),
+                    Model = obj["Model"].ToString().Trim(),
+                    AdditionalInfo = obj["DeviceId"].ToString().Trim() + " " + obj["SerialNumber"].ToString().Trim()
                 };
 
                 Record r = new Record
                 {
                     Hardware = hardware,
-                    Value = getAvailableDISK(),
+                    Value = availableDisk,
                     CreatedAt = DateTime.Now
                 };
 
                 _records.Add(r);
             }
-        }
-
-        private double CalculateRamUtil() {
-            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT FreePhysicalMemory, TotalVisibleMemorySize FROM Win32_OperatingSystem");
-
-            double freeMemory = 0;
-            double totalMemory = 0;
-            
-            foreach (ManagementObject obj in searcher.Get()) 
-            {
-                freeMemory += Convert.ToDouble(obj["FreePhysicalMemory"].ToString());
-                totalMemory += Convert.ToDouble(obj["TotalVisibleMemorySize"].ToString());
-            }
-
-            return CalculateFreeMemoryPercentage(freeMemory, totalMemory);
-        }
-
-        private double CalculateFreeMemoryPercentage(double freeMemory, double totalMemory) 
-        {
-            return (freeMemory * 100) / totalMemory;
-        }
+        }       
 
     }
 }
