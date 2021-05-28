@@ -1,19 +1,22 @@
-﻿using Domain;
-using Microsoft.Data.Sqlite;
+﻿using Microsoft.Data.Sqlite;
 using System;
+using System.Collections.Generic;
 using System.Configuration;
-using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using WorkerLibrary.Domain;
 
-namespace Database
+namespace WorkerLibrary
 {
     public class DataAccess
     {
-        public void InsertHardware(Hardware hardware) 
+        public void InsertHardware(Hardware hardware)
         {
-            using (SqliteConnection cnn = new SqliteConnection(LoadConnectionString())) 
+            using (SqliteConnection cnn = new SqliteConnection(LoadConnectionString()))
             {
                 SqliteCommand command = new SqliteCommand("INSERT INTO Hardwares (Id, Model, AdditionalInfo) VALUES (@id, @model, @info);", cnn);
-                
+
                 command.Parameters.AddWithValue("id", hardware.Id);
                 command.Parameters.AddWithValue("model", hardware.Model);
                 command.Parameters.AddWithValue("info", hardware.AdditionalInfo);
@@ -36,7 +39,7 @@ namespace Database
             using (SqliteConnection cnn = new SqliteConnection(LoadConnectionString()))
             {
                 SqliteCommand command = new SqliteCommand("INSERT INTO Records (HardwareId, Value, CreateDate) VALUES (@hid, @value, @date);", cnn);
-                
+
                 command.Parameters.AddWithValue("hid", record.Hardware.Id);
                 command.Parameters.AddWithValue("value", record.Value);
                 command.Parameters.AddWithValue("date", record.CreatedAt);
@@ -59,15 +62,15 @@ namespace Database
             using (SqliteConnection cnn = new SqliteConnection(LoadConnectionString()))
             {
                 SqliteCommand command = new SqliteCommand("SELECT Model FROM Hardwares WHERE Id = @id;", cnn);
-                
+
                 try
                 {
                     command.Parameters.AddWithValue("@id", hardwareId);
-                    
+
                     cnn.Open();
-                    
+
                     SqliteDataReader reader = command.ExecuteReader();
-                    
+
                     return reader.HasRows;
                 }
                 catch (Exception ex)
@@ -77,7 +80,8 @@ namespace Database
             }
         }
 
-        private string LoadConnectionString(string id = "Default") {
+        private string LoadConnectionString(string id = "Default")
+        {
             return ConfigurationManager.ConnectionStrings[id].ConnectionString;
         }
     }
